@@ -1,8 +1,8 @@
 {
   "name": "ncm-converter",
-  "displayName": "Ncm converter",
-  "version": "0.0.1",
-  "description": "convert ncm file to mp3/flac ",
+  "displayName": "NCM Converter",
+  "version": "0.0.3",
+  "description": "Convert encrypted NCM audio files from NetEase Cloud Music to standard MP3 and FLAC formats",
   "author": "kaiyang939325@gmail.com",
   "scripts": {
     "dev": "plasmo dev",
@@ -24,12 +24,11 @@
     "autoprefixer": "^10.4.22",
     "postcss": "^8.5.6",
     "prettier": "3.2.4",
+    "sharp": "^0.34.5",
     "tailwindcss": "^3.4.1",
     "typescript": "5.3.3"
   },
   "manifest": {
-    "host_permissions": [
-      "https://*/*"
-    ]
+    "description": "Secure local NCM file decryption. All operations are performed locally without sending data to external servers."
   }
 }
