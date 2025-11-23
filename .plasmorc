@@ -1,0 +1,10 @@
+{
+  "workflows": {
+    "build": {
+      "cmd": "parcel",
+      "env": {
+        "PARCEL_WORKERS": "1"
+      }
+    }
+  }
+}
