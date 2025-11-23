@@ -1,0 +1,101 @@
+name: "Auto Tag and Release"
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: read
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get latest tag
+        id: tag
+        run: |
+          # Get the latest tag or start from v0.0.1
+          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "Latest tag: $latest_tag"
+
+          # Parse version numbers
+          version=$latest_tag
+          version=${version#v}
+
+          # Split into major.minor.patch
+          major=$(echo $version | cut -d. -f1)
+          minor=$(echo $version | cut -d. -f2)
+          patch=$(echo $version | cut -d. -f3)
+
+          # Increment patch version
+          patch=$((patch + 1))
+
+          new_version="v$major.$minor.$patch"
+          echo "New version: $new_version"
+          echo "version=$new_version" >> $GITHUB_OUTPUT
+
+      - name: Update version in package.json
+        run: |
+          version=${{ steps.tag.outputs.version }}
+          version=${version#v}
+          npx json -I -f package.json -e "this.version='$version'"
+
+      - name: Create tag
+        run: |
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          git add package.json
+          git commit -m "chore: bump version to ${{ steps.tag.outputs.version }}" || true
+          git tag ${{ steps.tag.outputs.version }}
+          git push origin ${{ steps.tag.outputs.version }}
+
+      - name: Cache pnpm modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-
+
+      - uses: pnpm/action-setup@v2.2.4
+        with:
+          version: latest
+          run_install: true
+
+      - name: Use Node.js 16.x
+        uses: actions/setup-node@v3.4.1
+        with:
+          node-version: 16.x
+          cache: "pnpm"
+
+      - name: Build the extension
+        run: pnpm build
+
+      - name: Package the extension into a zip artifact
+        run: pnpm package
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.tag.outputs.version }}
+          name: Release ${{ steps.tag.outputs.version }}
+          body: |
+            ## Changes in ${{ steps.tag.outputs.version }}
+
+            - 🎵 NCM file conversion support
+            - 🔐 Secure local decryption
+            - 🌐 Multi-language support
+            - 📊 Real-time progress tracking
+
+            See [README.md](https://github.com/${{ github.repository }}/blob/${{ steps.tag.outputs.version }}/README.md) for more details.
+          files: |
+            build/chrome-mv3-prod.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
